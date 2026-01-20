@@ -1,15 +1,15 @@
 name: backend ci
 
 on:
-    push:
-        branches:
-        - main
-        paths:
-        - "backend/**"
+  push:
+    branches:
+      - main
+    paths:
+      - "backend/**"
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-    permissions:               #give permission to sign sbom
+    permissions:             #give permission to sign sbom
       contents: read
       packages: write
       id-token: write
