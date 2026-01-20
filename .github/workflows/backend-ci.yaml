@@ -21,8 +21,8 @@ jobs:
         - name: setup go
           uses: actions/setup-go@v5
           with:
-            go-version: "1.25"
-            #cache: true
+            go-version: "1.25.5"
+            cache: true
 
         - name: verify dependencies
           working-directory: ./backend
