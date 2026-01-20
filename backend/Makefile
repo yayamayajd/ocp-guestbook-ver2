@@ -6,7 +6,7 @@ build: deps
 	go build -o guestbook-api .
 
 test:
-	go test -v .
+	go test -v .  
 
 verbose:
 	go test -v -race .
