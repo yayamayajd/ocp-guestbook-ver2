@@ -2,8 +2,9 @@ FROM registry.access.redhat.com/ubi10/go-toolset:10.0 AS builder
 
 WORKDIR /opt/app-root/src
 
+ENV GOTOOLCHAIN=go1.25.5
 
-COPY go.mod ./
+COPY go.mod go.sum ./
 
 RUN go mod download
 
