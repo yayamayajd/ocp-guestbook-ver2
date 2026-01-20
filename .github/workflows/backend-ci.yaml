@@ -1,0 +1,102 @@
+name: backend ci
+on:
+  push:
+    branches: 
+        - main
+    paths: 
+          - "backend/**"
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    permissions:               #give permission to sign sbom
+      contents: read
+      packages: write
+      id-token: write
+        
+    steps:
+        - name: checkout code 
+          uses: actions/checkout@v4
+
+        - name: setup go
+          uses: actions/setup-go@v5
+          with:
+            go-version: "1.22"
+            cache: true
+
+        - name: verify dependencies
+          working-directory: ./backend
+          run: go mod verify
+
+        - name: test
+          working-directory: ./backend
+          run: make test
+
+        - name: smoke test
+          working-directory: ./backend
+          run: make smoke
+
+        - name: build-image
+          run: docker build -t guestbook-api:${{ github.sha }} ./backend
+
+        - name: Run Trivy vulnerability scanner
+          uses: aquasecurity/trivy-action@0.33.1
+          with:
+            image-ref: guestbook-api:${{ github.sha }}
+            format: 'table'
+            exit-code: '1'
+            ignore-unfixed: true
+            vuln-type: 'os,library'
+            severity: 'CRITICAL,HIGH' 
+        
+        - name: generate sbom
+          uses: aquasecurity/trivy-action@0.33.1
+          with:
+            image-ref: guestbook-api:${{ github.sha }}
+            format: 'cyclonedx'
+            output: 'sbom.json'
+
+        - name: export sbom to github
+          uses: actions/upload-artifact@v4
+          with:
+            name: backend-sbom
+            path: 'sbom.json'
+            retention-days: 7
+
+        - name: login to ghcr
+          uses: docker/login-action@v3
+          with:
+            registry:
+                ghcr.io
+            username: ${{ github.actor }}
+            password: ${{ secrets.GITHUB_TOKEN }}
+        
+        - name: push image
+          run: |
+            docker tag guestbook-api:${{ github.sha }} ghcr.io/${{ github.repository_owner }}/guestbook-api:${{ github.sha }}
+            docker push ghcr.io/${{ github.repository_owner }}/guestbook-api:${{ github.sha }}
+ 
+        - name: Install Cosign
+          uses: sigstore/cosign-installer@v4.0.0
+
+        - name: Check install!
+          run: cosign version
+
+        - name: set sbom to image
+          run: |
+            cosign attest --yes \
+            --predicate sbom.json \
+            --type cyclonedx \
+            ghcr.io/${{ github.repository_owner }}/guestbook-api:${{ github.sha }}
+
+
+        
+
+
+
+
+
+
+
+
+
+
